@@ -17,6 +17,12 @@ public class CategoriaService {
 	@Autowired
 	CategoriaRepository categoriaRepository;
 
+	@Autowired
+	ArquivoService arquivoService;
+	
+	@Autowired
+	MailService emailService;
+	
 	public List<Categoria> findAllCategoria() {
 		return categoriaRepository.findAll();
 	}
@@ -50,7 +56,7 @@ public class CategoriaService {
 		return converterEntidadeParaDto(novaCategoria);
 	}
 
-	public Categoria saveCategoriaComFoto(String categoriaString, MultipartFile file) {
+	public Categoria saveCategoriaComFoto(String categoriaString, MultipartFile file) throws Exception {
 
 		Categoria categoriaConvertida = new Categoria();
 		try {
@@ -64,7 +70,18 @@ public class CategoriaService {
 		categoriaBD.setNomeImagem(categoriaBD.getIdCategoria() + "_" + file.getOriginalFilename());
 		Categoria categoriaAtualizada = categoriaRepository.save(categoriaBD);
 
-		return null;
+		//Chamando o metodo que fara a copia do arquivo para a pasta definida
+		try {
+			arquivoService.criarArquivo(categoriaBD.getIdCategoria()+ "_"+file.getOriginalFilename(), file);
+		}catch (Exception e) {
+			throw new Exception("Ocorreu um erro ao tentar copiar o arquivo - "+ e.getStackTrace());
+		}
+		
+		//cuidado para definir um endereço de destinatario valido abaixo
+		String corpoEmail = "foi cadastrada uma nova categoria" + categoriaAtualizada.toString();
+		emailService.enviarEmailTexto("teste@teste.com", "cadastro de categoria", "corpoEmail");
+
+		return categoriaAtualizada;
 	}
 
 	public Categoria updateCategoria(Categoria categoria) {
